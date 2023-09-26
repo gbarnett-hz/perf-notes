@@ -1,0 +1,6 @@
+"Dstat 0.8.0 CSV output"
+"Author:","Dag Wieers <dag@wieers.com>",,,,"URL:","http://dag.wieers.com/home-made/dstat/"
+"Host:","ip-10-0-77-81",,,,"User:","ubuntu"
+"Cmdline:","dstat --epoch -m --all -l --noheaders --nocolor --output hazelcast-simulator/workers/4480c36e2cea62ded36ee4f64bceadcc99203793/A6_dstat.csv 5",,,,"Date:","25 Sep 2023 17:08:39 UTC"
+"epoch","memory usage",,,,"total cpu usage",,,,,"dsk/total",,"net/total",,"paging",,"system",,"load avg",,
+"epoch","used","free","buff","cach","usr","sys","idl","wai","stl","read","writ","recv","send","in","out","int","csw","1m","5m","15m"
