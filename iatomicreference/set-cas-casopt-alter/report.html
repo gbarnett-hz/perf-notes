@@ -544,6 +544,7 @@ blockquote footer {
   <p>
 'casopt' is an implementation of optimistic concurrency control -- read (get) the current data, modify locally producing a new version, then try install it (cas). The other operations are standard as provided by <code>IAtomicReference</code>. See <a href="https://github.com/gbarnett-hz/hazelcast-simulator/blob/hz3254/java/drivers/driver-hazelcast4plus/src/main/java/com/hazelcast/simulator/tests/cp/IAtomicReferenceTest.java">here</a> for more details. The function used in <code>alter</code> (the identity function) is 661 bytes serialised into a byte array using standard Java <code>ObjectOutputStream</code> and <code>ByteArrayOutputStream</code>. This should be taken into account as the other operations are moving the data over the network (128kb key; 128kb value), by contrast to <code>alter</code> which is moving the computation (the <code>IFunction</code>).
 </p>
+<p>Java 21 (see test configs for JVM args); c5.4xlarge (all VMs are in same <em>cluster</em> placement group).</p>
 <p>
 Note. The first 20 seconds and last 20 seconds are cut from the reports. The configurations referenced don't include the Hazelcast CP member configs -- that was done manually.
 </p>
