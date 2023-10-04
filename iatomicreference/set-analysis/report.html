@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>CP Profile/Performance Analysis – 128kb IAtomicReference.set, 3-member</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="pandoc/panam.css" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">CP Profile/Performance Analysis – 128kb
+IAtomicReference.set, 3-member</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#summary" id="toc-summary">Summary</a></li>
+<li><a href="#topology" id="toc-topology">Topology</a></li>
+<li><a href="#throughput" id="toc-throughput">Throughput</a>
+<ul>
+<li><a href="#unadjusted" id="toc-unadjusted">Unadjusted</a></li>
+<li><a href="#adjusted" id="toc-adjusted">Adjusted</a></li>
+</ul></li>
+<li><a href="#system-properties" id="toc-system-properties">System
+Properties</a>
+<ul>
+<li><a href="#space" id="toc-space">Space</a></li>
+<li><a href="#time" id="toc-time">Time</a></li>
+</ul></li>
+</ul>
+</nav>
+<p><em>Overview.</em> Investigation into performance drop-offs w.r.t.
+throughtout for <code>IAtomicReference#set(T)</code>. 128kb key-value.
+<code>5.3.2</code> open source. Test runs for 10 minutes. The exact
+details of the test scenario are <a
+href="test-iatomicreference-set128kb-10mins.yaml">here</a>.</p>
+<h2 id="summary">Summary</h2>
+<p>The I/O subsystem dominates memory and CPU profiling. The memory
+allocations are dominated by <code>byte[]</code> which are generally
+very short lived and within the context of the test scenarion it is a
+side effect of reading and writing to the network,
+e.g. <code>AppendRequestOp</code> and
+<code>AppendSuccessResponseOp</code>. Everything else is immaterial as
+the serde subsystem creates a lot of <code>byte[]</code> during the test
+(you can see one member later that allocates ~1.61TiB of
+<code>byte[]</code>). The <code>byte[]</code> allocations and
+manipulation are a side effect of the protocol itself – we are
+constantly sendinging messages between members; importantly, when we
+normalise the throughput graph the standard deviation is relatively low:
+~3% – things are pretty stable, even under heavy load (the test scenario
+in total performs 1,680,768 <code>set</code> operations). Note though
+that this simulation reduces the cost of networking as we have a
+<code>cluster</code> placement group which all VMs are a member of: The
+higher the network latencies the more pressure the system will come
+under due to longer life times of <code>byte[]</code>s. It’s worth
+noting that under the test conditions the high rate of
+<code>byte[]</code> allocations and their resp. processing does not
+adversly affect the throughput of the system from the client’s
+perspective: only the raw data looks quite scary – if you abstract this
+then the service operates stably within a relatively small tolerance as
+noted previously.</p>
+<p>Briefly we can map the findings explained here to <a
+href="https://htmlpreview.github.io/?https://github.com/gbarnett-hz/perf-notes/blob/main/iatomicreference/set-cas-casopt-alter/report.html">this</a>
+previous report. These tests were run for 120 seconds: for CP and
+<code>perftest</code> combination this is not long enough as the first
+60-75 seconds yield significant variability in operations/second and
+memory allocations due to network traffic. Therefore, applying the
+findings by normalising that graph you see something that is inline with
+what I present in the ‘Throughput &gt; Adjusted’ section. Why did we
+test <code>set</code>? Because <code>set</code> has the same drop-off
+properties as the oother operations <a
+href="https://htmlpreview.github.io/?https://github.com/gbarnett-hz/perf-notes/blob/main/iatomicreference/set-cas-casopt-alter/report.html">this</a>.
+The same approach can be applied and you get a stable throughput with
+low variability.</p>
+<h2 id="topology">Topology</h2>
+<p>Same AZ; Single <code>cluster</code> placement group. The VM sku is
+<code>c5.4xlarge</code> which has a network bandwidth up to 10Gbps as
+reported <a
+href="https://aws.amazon.com/ec2/instance-types/c5/">here</a>.</p>
+<table>
+<thead>
+<tr class="header">
+<th>IP (Private)</th>
+<th>IP (Public)</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>10.0.77.48</td>
+<td>18.185.188.187</td>
+<td>Client</td>
+</tr>
+<tr class="even">
+<td>10.0.77.246</td>
+<td>18.196.136.246</td>
+<td>Member</td>
+</tr>
+<tr class="odd">
+<td>10.0.77.34</td>
+<td>3.70.156.176</td>
+<td>Member</td>
+</tr>
+<tr class="even">
+<td>10.0.77.47</td>
+<td>3.120.182.209</td>
+<td>Member</td>
+</tr>
+</tbody>
+</table>
+<p>Test scenario is <a
+href="test-iatomicreference-set128kb-10mins.yaml">here</a>.</p>
+<h2 id="throughput">Throughput</h2>
+<p>There’s another report <a
+href="https://htmlpreview.github.io/?https://github.com/gbarnett-hz/perf-notes/blob/main/iatomicreference/set-cas-casopt-alter/report.html">here</a>
+that gives more context. For this work we’re concerned with focusing on
+trying to explain the dips in throughput that occur. The throughput data
+is lifted directly from <a
+href="data/perftest-output/performance-IAtomicReferenceTest.csv">this</a>
+file.</p>
+<h3 id="unadjusted">Unadjusted</h3>
+<p>Taken as-is without any cutting of data to account for
+warmup-warmdown.</p>
+<p><img src="throughput_raw.svg" /> <em>Figure.</em> Unadjusted
+throughput - operations/second.</p>
+<p>There are some big dips for the first minute. Looking at the JFR
+recordings the first minute sees the following combination of events
+which I believe is the contributing factor.</p>
+<ul>
+<li>Each member has during this period GC pause sum times of 90ms-120ms
+GC. This occurs throughout the 10 minute test, however it seemingly has
+no bearing on the throughput.</li>
+<li>Client has a contigous series of 13ms, 14ms, 21ms and 12ms pause
+sums throughout this period. After this we only ever see 7ms total pause
+times for a 15 second period.</li>
+<li>Raft member hits the max JVM heap size of ~22GiB a number of times
+within the first minute of operation (see below fig) before falling into
+a trend of peaking at ~16GiB, then falling to ~2GiB. Looking more at
+this you see that this member in particular allocates ~2-3x the other
+members within the period of relevance. A staggering 134GiB of
+<code>byte[]</code> vs. ~45GiB for the other two members.</li>
+</ul>
+<p><img src="leader-first-minute.png" /> <em>Figure.</em> Big early heap
+spikes.</p>
+<p><img src="massive-alloc.png" /> <em>Figure.</em> Same instance – huge
+<code>byte[]</code> allocations within a 15s window.</p>
+<p>The spike at the beginning is due to the client hitting the CP system
+hard immediately resulting in a short but significant spike of traffic;
+this tapers off over the course of the first 60 seconds or so when the
+system normalises.</p>
+<h3 id="adjusted">Adjusted</h3>
+<p>The first 60 seconds or so see massive variability in the system:
+there’s no real need to account for a cool-off as the system is stable.
+So, if we drop the first 75 seconds for this test run then we get the
+following. As I noted the first 60 seconds or so are due to the client
+hitting the service immediatitely resulting in a storm of requests.</p>
+<p><img src="throughput_adjusted.svg" /> <em>Figure.</em> Adjusted
+throughput to discard the first 75 seconds of volatility on the members
+and client.</p>
+<p>Taking this as the benchmark:</p>
+<ul>
+<li>min op/s: 2512</li>
+<li>max op/s: 3071</li>
+<li>mean op/s: 2894.3</li>
+<li>std-dev: 91.6</li>
+</ul>
+<p>The std-dev is ~3% which looks good to me all things considered.
+Again, the network in this topology plays a reduced role to the relative
+proximity of the VMs. Therefore the results should be taken as an almost
+ideal deployment.</p>
+<h2 id="system-properties">System Properties</h2>
+<h3 id="space">Space</h3>
+<p>Each member appears to have a different memory profile.</p>
+<table>
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 19%" />
+<col style="width: 63%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>IP (Private)</th>
+<th>IP (Public)</th>
+<th>Memory Profile Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>10.0.77.246</td>
+<td>18.196.136.246</td>
+<td>~21GiB used to ~9GiB used, repeated pattern</td>
+</tr>
+<tr class="even">
+<td>10.0.77.34</td>
+<td>3.70.156.176</td>
+<td>~18GiB used to ~4.5GiB used, repeated pattern</td>
+</tr>
+<tr class="odd">
+<td>10.0.77.47</td>
+<td>3.120.182.209</td>
+<td>~16GiB used to ~1.3GiB used, repeated pattern</td>
+</tr>
+</tbody>
+</table>
+<p>3.70.156.176 allocates ~3x the amount of <code>byte[]</code> arrays
+during the 10 minute test. This is the biggest allocation discrepancy
+and due to the sheer size it dominates all other data structures
+allocated by a huge margin. All of these <code>byte[]</code> arrays are
+allocated as part of serde and networking stack.</p>
+<table>
+<thead>
+<tr class="header">
+<th>IP (Private)</th>
+<th>IP (Public)</th>
+<th>byte[] allocated over test duration</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>10.0.77.246</td>
+<td>18.196.136.246</td>
+<td>548 GiB</td>
+</tr>
+<tr class="even">
+<td>10.0.77.34</td>
+<td>3.70.156.176</td>
+<td>1.61TiB</td>
+</tr>
+<tr class="odd">
+<td>10.0.77.47</td>
+<td>3.120.182.209</td>
+<td>655GiB</td>
+</tr>
+</tbody>
+</table>
+<p><img src="leader-byte.png" /> <em>Figure.</em> 10.0.77.34
+<code>byte[]</code> total alllocation.</p>
+<p>Recall that we’re throwing around 128kb key-value so it quickly
+builds up.</p>
+<p>Most of the <code>byte[]</code> arrays are allocated within serde:
+<code>AbstractSerializationService#toBytes(...)</code> and what it
+calls; triggered by
+<code>OutboundOperationHandler#toPacket(Operation)</code>.</p>
+<p><img src="byte-cost.png" /> <em>Figure.</em> serde entry point to
+<code>byte[]</code> allocations.</p>
+<h3 id="time">Time</h3>
+<p>The components of the system that this performance scenario hits is
+more-or-less completely I/O bound so it’s no surprise that most of the
+time is spend in network related activities. The time is split between
+the two I/O paths below.</p>
+<table>
+<colgroup>
+<col style="width: 29%" />
+<col style="width: 67%" />
+<col style="width: 3%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>Context</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>RaftNodeImpl#broadcastAppendRequest</code></td>
+<td>Handling of a packet, e.g. <code>AppendSuccessResponse</code>. Time
+is in serder and networking.</td>
+<td>~55%</td>
+</tr>
+<tr class="even">
+<td><code>Nio{In,Out}boundPipeline#process</code></td>
+<td>Inbound/Outbound TCP communication</td>
+<td>~40%</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>
