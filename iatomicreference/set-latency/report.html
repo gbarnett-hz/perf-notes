@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>Performance Analysis – Latency (low,high) 128kb IAtomicReference.set, 3-member</title>
+  <title>Performance Analysis – High Latency, 128kb IAtomicReference.set, 3-member</title>
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -93,7 +93,7 @@
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">Performance Analysis – Latency (low,high) 128kb
+<h1 class="title">Performance Analysis – High Latency, 128kb
 IAtomicReference.set, 3-member</h1>
 </header>
 <nav id="TOC" role="doc-toc">
@@ -113,19 +113,123 @@ IAtomicReference.set, 3-member</h1>
 <p>See the test <a
 href="test-iatomicreference-set128kb-10mins.yaml">configuration</a> for
 more details.</p>
+<p>Latency between VMs is introduced via <code>tc</code>.</p>
 <div class="sourceCode" id="cb1"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># on each member VM</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> tc qdisc add dev ens5 root netem delay 2ms</span></code></pre></div>
-<p>The above results in pairwise latency of 4ms between members. There’s
-a latency of 2ms between the client and each respective member as a side
-effect.</p>
-<p><img src="topology-latency.svg" /></p>
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># on each member VM -- not the client</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">tc</span> qdisc add dev ens5 root netem delay 2ms</span></code></pre></div>
+<p>The above results in pairwise latency of 4ms between members, 2ms
+either side of the link, <em>member-member latency</em>. There’s a
+latency of 2ms between the client and each respective member as a side
+effect, <em>client-member latency</em>.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> cat /etc/os-release</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="va">NAME</span><span class="op">=</span><span class="st">&quot;Ubuntu&quot;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="va">VERSION</span><span class="op">=</span><span class="st">&quot;20.04.3 LTS (Focal Fossa)&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="va">ID</span><span class="op">=</span>ubuntu</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="va">ID_LIKE</span><span class="op">=</span>debian</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="va">PRETTY_NAME</span><span class="op">=</span><span class="st">&quot;Ubuntu 20.04.3 LTS&quot;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="va">VERSION_ID</span><span class="op">=</span><span class="st">&quot;20.04&quot;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="va">HOME_URL</span><span class="op">=</span><span class="st">&quot;https://www.ubuntu.com/&quot;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="va">SUPPORT_URL</span><span class="op">=</span><span class="st">&quot;https://help.ubuntu.com/&quot;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="va">BUG_REPORT_URL</span><span class="op">=</span><span class="st">&quot;https://bugs.launchpad.net/ubuntu/&quot;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="va">PRIVACY_POLICY_URL</span><span class="op">=</span><span class="st">&quot;https://www.ubuntu.com/legal/terms-and-policies/privacy-policy&quot;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="va">VERSION_CODENAME</span><span class="op">=</span>focal</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="va">UBUNTU_CODENAME</span><span class="op">=</span>focal</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> cat /proc/version</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="ex">Linux</span> version 5.11.0-1022-aws <span class="er">(</span><span class="ex">buildd@lgw01-amd64-036</span><span class="kw">)</span> <span class="kw">(</span><span class="fu">gcc</span> <span class="er">(</span><span class="ex">Ubuntu</span> 9.3.0-17ubuntu1~20.04<span class="kw">)</span> <span class="ex">9.3.0,</span> GNU ld <span class="er">(</span><span class="ex">GNU</span> Binutils for Ubuntu<span class="kw">)</span> <span class="ex">2.34</span><span class="kw">)</span> <span class="co">#23~20.04.1-Ubuntu SMP Mon Nov 15 14:03:19 UTC 2021</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> java <span class="at">-version</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="ex">openjdk</span> version <span class="st">&quot;21&quot;</span> 2023-09-19</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="ex">OpenJDK</span> Runtime Environment <span class="er">(</span><span class="ex">build</span> 21+35-2513<span class="kw">)</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="ex">OpenJDK</span> 64-Bit Server VM <span class="er">(</span><span class="ex">build</span> 21+35-2513, mixed mode, sharing<span class="kw">)</span></span></code></pre></div>
+<p>VM instances: c5.4xlarge. Everything else can be collected from the
+test <a
+href="test-iatomicreference-set128kb-10mins.yaml">configuration</a>.</p>
 <h2 id="results">Results</h2>
-<p>Normalised: first 75 seconds are discarded due to volatility. Where,
-<em>high</em> is the run with the network latency applied as described
-previously; <em>low</em> is the stock network latency within a
-<code>cluster</code> placement.</p>
-<p><img src="throughput_adjusted.svg" /></p>
+<p><img src="topology-latency.svg" /> <em>Figure 1. Topology
+Latency.</em></p>
+<table>
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 20%" />
+<col style="width: 23%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th><code>tc</code> Latency</th>
+<th>Member-Member Latency</th>
+<th>Client-Member Latency</th>
+<th>Topology (Figure 1)</th>
+<th>Graph Label (Figure 2)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>n/a</td>
+<td>~55us</td>
+<td>~55us</td>
+<td>n/a</td>
+<td>cluster</td>
+</tr>
+<tr class="even">
+<td>1ms</td>
+<td>2ms</td>
+<td>1ms</td>
+<td>(a)</td>
+<td>tc-1ms</td>
+</tr>
+<tr class="odd">
+<td>2ms</td>
+<td>4ms</td>
+<td>2ms</td>
+<td>(b)</td>
+<td>tc-2ms</td>
+</tr>
+<tr class="even">
+<td>3ms</td>
+<td>6ms</td>
+<td>3ms</td>
+<td>(c)</td>
+<td>tc-3ms</td>
+</tr>
+<tr class="odd">
+<td>4ms</td>
+<td>8ms</td>
+<td>4ms</td>
+<td>(d)</td>
+<td>tc-4ms</td>
+</tr>
+</tbody>
+</table>
+<p>Note that the latencies are approximations. The latency is very low
+in <code>cluster</code> placement group so <code>tc</code> added the
+millis as stated; in practice the latency is normally just over. <a
+href="https://github.com/microsoft/lagscope">lagscope</a> was used to
+derive the latency for a stock <code>cluster</code> placement of all
+VMs:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> lagscope <span class="at">-s10.0.77.127</span> <span class="at">-Pout.json</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">lagscope</span> 1.0.1</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">---------------------------------------------------------</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">13:16:51</span> INFO: New connection: local:25001 <span class="pp">[</span><span class="ss">socket:3</span><span class="pp">]</span> <span class="at">--</span><span class="op">&gt;</span> 10.0.77.127:6001</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ex">13:17:46</span> INFO: TEST COMPLETED.</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="ex">13:17:46</span> INFO: Ping statistics for 10.0.77.127:</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="ex">13:17:46</span> INFO:    Number of successful Pings: 1000000</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="ex">13:17:46</span> INFO:    Minimum = 42.000us, Maximum = 359.750us, Average = 54.593us</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="ex">13:17:46</span> INFO: Dumping latency frequency table into json file: out.json</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="ex">Percentile</span>   Latency<span class="er">(</span><span class="ex">us</span><span class="kw">)</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>     <span class="ex">50%</span>     53</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>     <span class="ex">75%</span>     56</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>     <span class="ex">90%</span>     61</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>     <span class="ex">95%</span>     65</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>     <span class="ex">99%</span>     81</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>   <span class="ex">99.9%</span>     145</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>  <span class="ex">99.99%</span>     186</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a> <span class="ex">99.999%</span>     233</span></code></pre></div>
+<p><img src="throughput_adjusted.svg" /> <em>Figure 2. Throughputs with
+90 second warmup and cooldown normalisation.</em></p>
 <table>
 <thead>
 <tr class="header">
@@ -138,18 +242,39 @@ previously; <em>low</em> is the stock network latency within a
 </thead>
 <tbody>
 <tr class="odd">
-<td>Low</td>
-<td>2512</td>
-<td>3071</td>
-<td>2894</td>
-<td>92</td>
+<td>cluster</td>
+<td>2512.00</td>
+<td>3069.00</td>
+<td>2881.29</td>
+<td>90.13</td>
 </tr>
 <tr class="even">
-<td>High</td>
-<td>162</td>
-<td>230</td>
-<td>192</td>
-<td>15</td>
+<td>tc-1ms</td>
+<td>179.00</td>
+<td>286.00</td>
+<td>223.96</td>
+<td>14.28</td>
+</tr>
+<tr class="odd">
+<td>tc-2ms</td>
+<td>162.00</td>
+<td>230.00</td>
+<td>189.27</td>
+<td>13.45</td>
+</tr>
+<tr class="even">
+<td>tc-3ms</td>
+<td>90.91</td>
+<td>160.00</td>
+<td>140.07</td>
+<td>11.83</td>
+</tr>
+<tr class="odd">
+<td>tc-4ms</td>
+<td>0.00</td>
+<td>56.00</td>
+<td>4.52</td>
+<td>9.63</td>
 </tr>
 </tbody>
 </table>

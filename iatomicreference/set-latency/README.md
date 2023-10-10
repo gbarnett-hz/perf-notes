@@ -1,5 +1,5 @@
 ---
-title: Performance Analysis -- Latency (low,high) 128kb IAtomicReference.set, 3-member
+title: Performance Analysis -- High Latency, 128kb IAtomicReference.set, 3-member
 ---
 
 # Overview
@@ -10,25 +10,88 @@ title: Performance Analysis -- Latency (low,high) 128kb IAtomicReference.set, 3-
 
 See the test [configuration](test-iatomicreference-set128kb-10mins.yaml) for more details.
 
+Latency between VMs is introduced via `tc`.
+
 ```bash
-# on each member VM
-sudo tc qdisc add dev ens5 root netem delay 2ms
+# on each member VM -- not the client
+tc qdisc add dev ens5 root netem delay 2ms
 ```
 
-The above results in pairwise latency of 4ms between members. There's a latency of 2ms between the
-client and each respective member as a side effect.
+The above results in pairwise latency of 4ms between members, 2ms either side of the link,
+_member-member latency_. There's a latency of 2ms between the client and each respective member as a
+side effect, _client-member latency_.
 
-![](topology-latency.svg)
+```bash
+$ cat /etc/os-release
+NAME="Ubuntu"
+VERSION="20.04.3 LTS (Focal Fossa)"
+ID=ubuntu
+ID_LIKE=debian
+PRETTY_NAME="Ubuntu 20.04.3 LTS"
+VERSION_ID="20.04"
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+VERSION_CODENAME=focal
+UBUNTU_CODENAME=focal
+$ cat /proc/version
+Linux version 5.11.0-1022-aws (buildd@lgw01-amd64-036) (gcc (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0, GNU ld (GNU Binutils for Ubuntu) 2.34) #23~20.04.1-Ubuntu SMP Mon Nov 15 14:03:19 UTC 2021
+$ java -version
+openjdk version "21" 2023-09-19
+OpenJDK Runtime Environment (build 21+35-2513)
+OpenJDK 64-Bit Server VM (build 21+35-2513, mixed mode, sharing)
+```
+
+VM instances: c5.4xlarge. Everything else can be collected from the test
+[configuration](test-iatomicreference-set128kb-10mins.yaml).
 
 ## Results
 
-Normalised: first 75 seconds are discarded due to volatility. Where, _high_ is the run with the
-network latency applied as described previously; _low_ is the stock network latency within a
-`cluster` placement.
+![](topology-latency.svg) _Figure 1. Topology Latency._
 
-![](throughput_adjusted.svg)
+| `tc` Latency | Member-Member Latency | Client-Member Latency | Topology (Figure 1) | Graph Label (Figure 2) |
+| ------------ | --------------------- | --------------------- | ------------------- | ---------------------- |
+| n/a          | ~55us                 | ~55us                 | n/a                 | cluster                |
+| 1ms          | 2ms                   | 1ms                   | (a)                 | tc-1ms                 |
+| 2ms          | 4ms                   | 2ms                   | (b)                 | tc-2ms                 |
+| 3ms          | 6ms                   | 3ms                   | (c)                 | tc-3ms                 |
+| 4ms          | 8ms                   | 4ms                   | (d)                 | tc-4ms                 |
+
+Note that the latencies are approximations. The latency is very low in `cluster` placement group so
+`tc` added the millis as stated; in practice the latency is normally just over.
+[lagscope](https://github.com/microsoft/lagscope) was used to derive the latency for a stock
+`cluster` placement of all VMs:
+
+```bash
+$ lagscope -s10.0.77.127 -Pout.json
+lagscope 1.0.1
+---------------------------------------------------------
+13:16:51 INFO: New connection: local:25001 [socket:3] --> 10.0.77.127:6001
+13:17:46 INFO: TEST COMPLETED.
+13:17:46 INFO: Ping statistics for 10.0.77.127:
+13:17:46 INFO: 	  Number of successful Pings: 1000000
+13:17:46 INFO: 	  Minimum = 42.000us, Maximum = 359.750us, Average = 54.593us
+13:17:46 INFO: Dumping latency frequency table into json file: out.json
+
+Percentile	 Latency(us)
+     50% 	 53
+     75% 	 56
+     90% 	 61
+     95% 	 65
+     99% 	 81
+   99.9% 	 145
+  99.99% 	 186
+ 99.999% 	 233
+```
+
+![](throughput_adjusted.svg) _Figure 2. Throughputs with 90 second warmup and cooldown
+normalisation._
 
 | Network Latency | Min Ops/s | Max Ops/s | Mean Ops/s | StdDev |
 | --------------- | --------- | --------- | ---------- | ------ |
-| Low             | 2512      | 3071      | 2894       | 92     |
-| High            | 162       | 230       | 192        | 15     |
+| cluster         | 2512.00   | 3069.00   | 2881.29    | 90.13  |
+| tc-1ms          | 179.00    | 286.00    | 223.96     | 14.28  |
+| tc-2ms          | 162.00    | 230.00    | 189.27     | 13.45  |
+| tc-3ms          | 90.91     | 160.00    | 140.07     | 11.83  |
+| tc-4ms          | 0.00      | 56.00     | 4.52       | 9.63   |
