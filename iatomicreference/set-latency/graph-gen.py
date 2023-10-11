@@ -1,15 +1,18 @@
 import glob as g
+import sys
 
 import pandas as p
 import plotly_express as px
 
+version = sys.argv[1]
+
 
 def label(csv_path: str) -> str:
-    return csv_path.split(".csv")[0]
+    return csv_path.split(".csv")[0].replace(version + "-", "")
 
 
 # we'll use these as the labels for ys
-csvs = g.glob("*.csv")
+csvs = g.glob(f"{version}*.csv")
 csvs.sort()
 labels = [label(csv) for csv in csvs]
 
@@ -35,13 +38,18 @@ df = df.iloc[: len(df) - cooldown_seconds]
 fig = px.line(df, x=df["seconds"], y=[df[label] for label in labels])
 fig.update_layout(legend_title="Latency")
 fig.update_layout(yaxis_title="operations")
-# fig.write_image("throughput_adjusted.svg")
+fig.write_image(f"{version}-throughput_adjusted.svg")
 
-# dump out the stats
-for l in labels:
-    col = df[l]
-    min = col.min()
-    max = col.max()
-    mean = col.mean()
-    std = col.std()
-    print(f"| {l} | {min:.2f} | {max:.2f} | {mean:.2f} | {std:.2f}")
+
+def number_precision(n: float) -> str:
+    return f"{n:.2f}"
+
+
+# table gen of stats in md for c+v
+print("| Network Latency | Min Ops/s | Max Ops/s | Mean Ops/s | StdDev |")
+print("| --------------- | --------- | --------- | ---------- | ------ |")
+for run_label in labels:
+    run_column = df[run_label]
+    raw_row = [run_column.min(), run_column.max(), run_column.mean(), run_column.std()]
+    rendered_row = "|".join([number_precision(v) for v in raw_row])
+    print(f"|{run_label}|{rendered_row}|")

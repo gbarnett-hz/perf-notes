@@ -100,14 +100,19 @@ IAtomicReference.set, 3-member</h1>
 <ul>
 <li><a href="#overview" id="toc-overview">Overview</a>
 <ul>
-<li><a href="#results" id="toc-results">Results</a></li>
+<li><a href="#results" id="toc-results">Results</a>
+<ul>
+<li><a href="#section" id="toc-section">5.3.2</a></li>
+<li><a href="#section-1" id="toc-section-1">5.3.1</a></li>
 </ul></li>
+</ul></li>
+<li><a href="#summary" id="toc-summary">Summary</a></li>
 </ul>
 </nav>
 <h1 id="overview">Overview</h1>
 <ul>
 <li>All VMs in the same <code>cluster</code> placement group</li>
-<li>Hazelcast 5.3.2</li>
+<li>Hazelcast 5.3.2 and 5.3.1 and 5.3.1</li>
 <li>Artificial network latency via <code>tc</code></li>
 </ul>
 <p>See the test <a
@@ -116,7 +121,7 @@ more details.</p>
 <p>Latency between VMs is introduced via <code>tc</code>.</p>
 <div class="sourceCode" id="cb1"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># on each member VM -- not the client</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">tc</span> qdisc add dev ens5 root netem delay 2ms</span></code></pre></div>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tc qdisc add dev ens5 root netem delay 2ms</span></code></pre></div>
 <p>The above results in pairwise latency of 4ms between members, 2ms
 either side of the link, <em>member-member latency</em>. There’s a
 latency of 2ms between the client and each respective member as a side
@@ -141,9 +146,7 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="
 <span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="ex">openjdk</span> version <span class="st">&quot;21&quot;</span> 2023-09-19</span>
 <span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="ex">OpenJDK</span> Runtime Environment <span class="er">(</span><span class="ex">build</span> 21+35-2513<span class="kw">)</span></span>
 <span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="ex">OpenJDK</span> 64-Bit Server VM <span class="er">(</span><span class="ex">build</span> 21+35-2513, mixed mode, sharing<span class="kw">)</span></span></code></pre></div>
-<p>VM instances: c5.4xlarge. Everything else can be collected from the
-test <a
-href="test-iatomicreference-set128kb-10mins.yaml">configuration</a>.</p>
+<p>VM instances: c5.4xlarge.</p>
 <h2 id="results">Results</h2>
 <p><img src="topology-latency.svg" /> <em>Figure 1. Topology
 Latency.</em></p>
@@ -228,8 +231,11 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="
 <span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>   <span class="ex">99.9%</span>     145</span>
 <span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>  <span class="ex">99.99%</span>     186</span>
 <span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a> <span class="ex">99.999%</span>     233</span></code></pre></div>
-<p><img src="throughput_adjusted.svg" /> <em>Figure 2. Throughputs with
-90 second warmup and cooldown normalisation.</em></p>
+<h3 id="section">5.3.2</h3>
+<p>Test configuration is <a
+href="test-iatomicreference-set128kb-10mins.yaml">here</a>.</p>
+<p><img src="5_3_2-throughput_adjusted.svg" /> <em>Figure 2. Throughputs
+with 90 second warmup and cooldown normalisation.</em></p>
 <table>
 <thead>
 <tr class="header">
@@ -278,5 +284,52 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="
 </tr>
 </tbody>
 </table>
+<h3 id="section-1">5.3.1</h3>
+<p>Test configuration is <a
+href="test-5_3_1-iatomicreference-set128kb-10mins.yaml">here</a>. The
+only difference is the specification of 5.3.1 vs. 5.3.2 in the maven
+coordinate.</p>
+<blockquote>
+<p>Running with introduced latency of 2ms per-member and beyond resulted
+in crashes. Therefore, I’ve presented only two runs here so we must make
+a comparison based on only those data points.</p>
+</blockquote>
+<p><img src="5_3_1-throughput_adjusted.svg" /> <em>Figure 3. Throughputs
+with 90 second warmup and cooldown normalisation.</em></p>
+<table>
+<thead>
+<tr class="header">
+<th>Network Latency</th>
+<th>Min Ops/s</th>
+<th>Max Ops/s</th>
+<th>Mean Ops/s</th>
+<th>StdDev</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>cluster</td>
+<td>35.96</td>
+<td>644.00</td>
+<td>58.93</td>
+<td>45.03</td>
+</tr>
+<tr class="even">
+<td>tc-1ms</td>
+<td>0.00</td>
+<td>12.00</td>
+<td>2.21</td>
+<td>2.01</td>
+</tr>
+</tbody>
+</table>
+<h1 id="summary">Summary</h1>
+<p>5.3.2 w.r.t. 5.3.1. has the following mean op/s improvements:</p>
+<ul>
+<li>~49x in a <code>cluster</code> network profile; and</li>
+<li>~101x in <code>tc-1ms</code> network profile</li>
+</ul>
+<p>I’m sure if we were to analyse 5.3.1 we would say many scary things
+happening.</p>
 </body>
 </html>

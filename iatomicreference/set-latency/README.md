@@ -5,7 +5,7 @@ title: Performance Analysis -- High Latency, 128kb IAtomicReference.set, 3-membe
 # Overview
 
 - All VMs in the same `cluster` placement group
-- Hazelcast 5.3.2
+- Hazelcast 5.3.2 and 5.3.1 and 5.3.1
 - Artificial network latency via `tc`
 
 See the test [configuration](test-iatomicreference-set128kb-10mins.yaml) for more details.
@@ -14,7 +14,7 @@ Latency between VMs is introduced via `tc`.
 
 ```bash
 # on each member VM -- not the client
-tc qdisc add dev ens5 root netem delay 2ms
+$ tc qdisc add dev ens5 root netem delay 2ms
 ```
 
 The above results in pairwise latency of 4ms between members, 2ms either side of the link,
@@ -43,8 +43,7 @@ OpenJDK Runtime Environment (build 21+35-2513)
 OpenJDK 64-Bit Server VM (build 21+35-2513, mixed mode, sharing)
 ```
 
-VM instances: c5.4xlarge. Everything else can be collected from the test
-[configuration](test-iatomicreference-set128kb-10mins.yaml).
+VM instances: c5.4xlarge.
 
 ## Results
 
@@ -85,7 +84,11 @@ Percentile	 Latency(us)
  99.999% 	 233
 ```
 
-![](throughput_adjusted.svg) _Figure 2. Throughputs with 90 second warmup and cooldown
+### 5.3.2
+
+Test configuration is [here](test-iatomicreference-set128kb-10mins.yaml).
+
+![](5_3_2-throughput_adjusted.svg) _Figure 2. Throughputs with 90 second warmup and cooldown
 normalisation._
 
 | Network Latency | Min Ops/s | Max Ops/s | Mean Ops/s | StdDev |
@@ -95,3 +98,28 @@ normalisation._
 | tc-2ms          | 162.00    | 230.00    | 189.27     | 13.45  |
 | tc-3ms          | 90.91     | 160.00    | 140.07     | 11.83  |
 | tc-4ms          | 0.00      | 56.00     | 4.52       | 9.63   |
+
+### 5.3.1
+
+Test configuration is [here](test-5_3_1-iatomicreference-set128kb-10mins.yaml). The only difference
+is the specification of 5.3.1 vs. 5.3.2 in the maven coordinate.
+
+> Running with introduced latency of 2ms per-member and beyond resulted in crashes. Therefore, I've
+> presented only two runs here so we must make a comparison based on only those data points.
+
+![](5_3_1-throughput_adjusted.svg) _Figure 3. Throughputs with 90 second warmup and cooldown
+normalisation._
+
+| Network Latency | Min Ops/s | Max Ops/s | Mean Ops/s | StdDev |
+| --------------- | --------- | --------- | ---------- | ------ |
+| cluster         | 35.96     | 644.00    | 58.93      | 45.03  |
+| tc-1ms          | 0.00      | 12.00     | 2.21       | 2.01   |
+
+# Summary
+
+5.3.2 w.r.t. 5.3.1. has the following mean op/s improvements:
+
+- ~49x in a `cluster` network profile; and
+- ~101x in `tc-1ms` network profile
+
+I'm sure if we were to analyse 5.3.1 we would say many scary things happening.
