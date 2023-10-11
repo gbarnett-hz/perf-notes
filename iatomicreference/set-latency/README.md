@@ -125,7 +125,7 @@ normalisation._
 
 I ran this twice because I expted the same peaking as 5.3.1. The first run, `cluster-run1`,
 exhibited a stabler op/s with smaller variability; however, a second run to confirm this,
-`cluster-2`, showed the same peaking as 5.3.1.
+`cluster-run2`, showed the same peaking as 5.3.1.
 
 | Network Latency | Min Ops/s | Max Ops/s | Mean Ops/s | StdDev |
 | --------------- | --------- | --------- | ---------- | ------ |
