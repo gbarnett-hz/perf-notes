@@ -7,6 +7,7 @@ title: Performance Analysis -- High Latency, 128kb IAtomicReference.set, 3-membe
 - All VMs in the same `cluster` placement group
 - Hazelcast 5.3.2 and 5.3.1 and 5.3.1
 - Artificial network latency via `tc`
+- Test duration is 10 minutes
 
 See the test [configuration](test-iatomicreference-set128kb-10mins.yaml) for more details.
 
@@ -123,22 +124,34 @@ Test configuration is [here](test-5_3_0-iatomicreference-set128kb-10mins.yaml).
 ![](5_3_0-throughput_adjusted.svg) _Figure 4. Throughputs with 90 second warmup and cooldown
 normalisation._
 
-I ran this twice because I expted the same peaking as 5.3.1. The first run, `cluster-run1`,
-exhibited a stabler op/s with smaller variability; however, a second run to confirm this,
-`cluster-run2`, showed the same peaking as 5.3.1.
+> I ran this twice because I expected the same peaking as 5.3.1. The first run, `cluster-run1`,
+> exhibited a stabler op/s with smaller variability; however, a second run to confirm this,
+> `cluster-run2`, showed the same peaking as 5.3.1.
 
 | Network Latency | Min Ops/s | Max Ops/s | Mean Ops/s | StdDev |
 | --------------- | --------- | --------- | ---------- | ------ |
 | cluster-run1    | 40.96     | 118.00    | 69.28      | 12.59  |
 | cluster-run2    | 34.00     | 914.09    | 65.28      | 71.10  |
 
+### 4.2.8
+
+Test configuration is [here](test-4_2_8-iatomicreference-set128kb-10mins.yaml).
+
+> Ran twice as the peaking in 5.3.0 didn't manifest in the first run.
+
+![](4_2_8-throughput_adjusted.svg) _Figure 5. Throughputs with 90 second warmup and cooldown
+normalisation._
+
+| Network Latency | Min Ops/s | Max Ops/s | Mean Ops/s | StdDev |
+| --------------- | --------- | --------- | ---------- | ------ |
+| cluster-run1    | 51.00     | 916.00    | 133.03     | 100.66 |
+| cluster-run2    | 49.95     | 941.00    | 108.75     | 80.20  |
+
 # Summary
 
-5.3.2 w.r.t. 5.3.1. has the following mean op/s improvements:
-
-- ~49x in a `cluster` network profile; and
-- ~101x in `tc-1ms` network profile
-
-I'm sure if we were to analyse 5.3.1 we would say many scary things happening.
-
-5.3.0 and 5.3.1 show massive peaking.
+- 5.3.2 w.r.t. 5.3.1. has the following (huge) mean op/s improvements: ~49x in a `cluster` network
+  profile and ~101x in `tc-1ms` network profile.
+- 5.3.2 exhibits a massive dip in performance with 8ms member<->member network latency. A large
+  percentage of op/s data points are 0 under this profile.
+- 5.3.0 and 5.3.1 show massive occassional peaking.
+- 4.2.8 shows a repeatable pattern of peaking.

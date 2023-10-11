@@ -105,6 +105,7 @@ IAtomicReference.set, 3-member</h1>
 <li><a href="#section" id="toc-section">5.3.2</a></li>
 <li><a href="#section-1" id="toc-section-1">5.3.1</a></li>
 <li><a href="#section-2" id="toc-section-2">5.3.0</a></li>
+<li><a href="#section-3" id="toc-section-3">4.2.8</a></li>
 </ul></li>
 </ul></li>
 <li><a href="#summary" id="toc-summary">Summary</a></li>
@@ -115,6 +116,7 @@ IAtomicReference.set, 3-member</h1>
 <li>All VMs in the same <code>cluster</code> placement group</li>
 <li>Hazelcast 5.3.2 and 5.3.1 and 5.3.1</li>
 <li>Artificial network latency via <code>tc</code></li>
+<li>Test duration is 10 minutes</li>
 </ul>
 <p>See the test <a
 href="test-iatomicreference-set128kb-10mins.yaml">configuration</a> for
@@ -329,10 +331,12 @@ with 90 second warmup and cooldown normalisation.</em></p>
 href="test-5_3_0-iatomicreference-set128kb-10mins.yaml">here</a>.</p>
 <p><img src="5_3_0-throughput_adjusted.svg" /> <em>Figure 4. Throughputs
 with 90 second warmup and cooldown normalisation.</em></p>
-<p>I ran this twice because I expted the same peaking as 5.3.1. The
+<blockquote>
+<p>I ran this twice because I expected the same peaking as 5.3.1. The
 first run, <code>cluster-run1</code>, exhibited a stabler op/s with
 smaller variability; however, a second run to confirm this,
 <code>cluster-run2</code>, showed the same peaking as 5.3.1.</p>
+</blockquote>
 <table>
 <thead>
 <tr class="header">
@@ -360,14 +364,52 @@ smaller variability; however, a second run to confirm this,
 </tr>
 </tbody>
 </table>
+<h3 id="section-3">4.2.8</h3>
+<p>Test configuration is <a
+href="test-4_2_8-iatomicreference-set128kb-10mins.yaml">here</a>.</p>
+<blockquote>
+<p>Ran twice as the peaking in 5.3.0 didn’t manifest in the first
+run.</p>
+</blockquote>
+<p><img src="4_2_8-throughput_adjusted.svg" /> <em>Figure 5. Throughputs
+with 90 second warmup and cooldown normalisation.</em></p>
+<table>
+<thead>
+<tr class="header">
+<th>Network Latency</th>
+<th>Min Ops/s</th>
+<th>Max Ops/s</th>
+<th>Mean Ops/s</th>
+<th>StdDev</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>cluster-run1</td>
+<td>51.00</td>
+<td>916.00</td>
+<td>133.03</td>
+<td>100.66</td>
+</tr>
+<tr class="even">
+<td>cluster-run2</td>
+<td>49.95</td>
+<td>941.00</td>
+<td>108.75</td>
+<td>80.20</td>
+</tr>
+</tbody>
+</table>
 <h1 id="summary">Summary</h1>
-<p>5.3.2 w.r.t. 5.3.1. has the following mean op/s improvements:</p>
 <ul>
-<li>~49x in a <code>cluster</code> network profile; and</li>
-<li>~101x in <code>tc-1ms</code> network profile</li>
+<li>5.3.2 w.r.t. 5.3.1. has the following (huge) mean op/s improvements:
+~49x in a <code>cluster</code> network profile and ~101x in
+<code>tc-1ms</code> network profile.</li>
+<li>5.3.2 exhibits a massive dip in performance with 8ms
+member&lt;-&gt;member network latency. A large percentage of op/s data
+points are 0 under this profile.</li>
+<li>5.3.0 and 5.3.1 show massive occassional peaking.</li>
+<li>4.2.8 shows a repeatable pattern of peaking.</li>
 </ul>
-<p>I’m sure if we were to analyse 5.3.1 we would say many scary things
-happening.</p>
-<p>5.3.0 and 5.3.1 show massive peaking.</p>
 </body>
 </html>
