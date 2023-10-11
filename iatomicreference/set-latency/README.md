@@ -101,11 +101,12 @@ normalisation._
 
 ### 5.3.1
 
-Test configuration is [here](test-5_3_1-iatomicreference-set128kb-10mins.yaml). The only difference
-is the specification of 5.3.1 vs. 5.3.2 in the maven coordinate.
+Test configuration is [here](test-5_3_1-iatomicreference-set128kb-10mins.yaml).
 
 > Running with introduced latency of 2ms per-member and beyond resulted in crashes. Therefore, I've
-> presented only two runs here so we must make a comparison based on only those data points.
+> presented only two runs here so we must make a comparison based on only those data points. Also, I
+> ran this test twice to confirm the large op/s spike was not a one-off -- it wasn't and it's
+> reproducible seemingly each test run.
 
 ![](5_3_1-throughput_adjusted.svg) _Figure 3. Throughputs with 90 second warmup and cooldown
 normalisation._
@@ -115,6 +116,22 @@ normalisation._
 | cluster         | 35.96     | 644.00    | 58.93      | 45.03  |
 | tc-1ms          | 0.00      | 12.00     | 2.21       | 2.01   |
 
+### 5.3.0
+
+Test configuration is [here](test-5_3_0-iatomicreference-set128kb-10mins.yaml).
+
+![](5_3_0-throughput_adjusted.svg) _Figure 4. Throughputs with 90 second warmup and cooldown
+normalisation._
+
+I ran this twice because I expted the same peaking as 5.3.1. The first run, `cluster-run1`,
+exhibited a stabler op/s with smaller variability; however, a second run to confirm this,
+`cluster-2`, showed the same peaking as 5.3.1.
+
+| Network Latency | Min Ops/s | Max Ops/s | Mean Ops/s | StdDev |
+| --------------- | --------- | --------- | ---------- | ------ |
+| cluster-run1    | 40.96     | 118.00    | 69.28      | 12.59  |
+| cluster-run2    | 34.00     | 914.09    | 65.28      | 71.10  |
+
 # Summary
 
 5.3.2 w.r.t. 5.3.1. has the following mean op/s improvements:
@@ -123,3 +140,8 @@ normalisation._
 - ~101x in `tc-1ms` network profile
 
 I'm sure if we were to analyse 5.3.1 we would say many scary things happening.
+
+5.3.0 w.t.t. 5.3.1:
+
+- Smaller max op/s but importantly there's much less variability in the op/s and the the mean op/s
+  is slightly higher. The trend is more appealing to my eye vs. the large spike in 5.3.1.

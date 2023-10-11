@@ -1,0 +1,27 @@
+- name: set128kb
+  repetitions: 1
+  duration: 600s
+  clients: 1
+  members: 3
+  loadgenerator_hosts: loadgenerators
+  node_hosts: nodes
+  driver: hazelcast5
+  version: maven=5.3.0
+  client_args: >
+    -Xms8g
+    -Xmx8g
+    -XX:+UnlockDiagnosticVMOptions
+    -XX:+DebugNonSafepoints
+  member_args: >
+    -Xms24g
+    -Xmx24g
+    -XX:+UnlockDiagnosticVMOptions
+    -XX:+DebugNonSafepoints
+  performance_monitor_interval_seconds: 1
+  verify_enabled: True
+  warmup_seconds: 0
+  cooldown_seconds: 0
+  test:
+    - class: com.hazelcast.simulator.tests.cp.IAtomicReferenceTest
+      keyValueSizeKb: 128
+      threadCount: 40
