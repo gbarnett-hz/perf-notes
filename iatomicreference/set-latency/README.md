@@ -141,7 +141,4 @@ exhibited a stabler op/s with smaller variability; however, a second run to conf
 
 I'm sure if we were to analyse 5.3.1 we would say many scary things happening.
 
-5.3.0 w.t.t. 5.3.1:
-
-- Smaller max op/s but importantly there's much less variability in the op/s and the the mean op/s
-  is slightly higher. The trend is more appealing to my eye vs. the large spike in 5.3.1.
+5.3.0 and 5.3.1 show massive peaking.
