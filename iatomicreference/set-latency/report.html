@@ -109,6 +109,17 @@ IAtomicReference.set, 3-member</h1>
 </ul></li>
 </ul></li>
 <li><a href="#summary" id="toc-summary">Summary</a></li>
+<li><a href="#review" id="toc-review">Review</a>
+<ul>
+<li><a href="#section-4" id="toc-section-4">5.3.2</a>
+<ul>
+<li><a href="#cluster-network-profile"
+id="toc-cluster-network-profile">Cluster Network Profile</a></li>
+<li><a href="#ms-network-profile-tc-4ms"
+id="toc-ms-network-profile-tc-4ms">8ms Network Profile,
+<code>tc-4ms</code></a></li>
+</ul></li>
+</ul></li>
 </ul>
 </nav>
 <h1 id="overview">Overview</h1>
@@ -401,6 +412,10 @@ with 90 second warmup and cooldown normalisation.</em></p>
 </tbody>
 </table>
 <h1 id="summary">Summary</h1>
+<blockquote>
+<p>Please see the <em>Review</em> section where I do a bit of
+confirmation w.r.t. a few scenarios for 5.3.2.</p>
+</blockquote>
 <ul>
 <li>5.3.2 w.r.t. 5.3.1. has the following (huge) mean op/s improvements:
 ~49x in a <code>cluster</code> network profile and ~101x in
@@ -411,5 +426,100 @@ points are 0 under this profile.</li>
 <li>5.3.0 and 5.3.1 show massive occassional peaking.</li>
 <li>4.2.8 shows a repeatable pattern of peaking.</li>
 </ul>
+<h1 id="review">Review</h1>
+<h2 id="section-4">5.3.2</h2>
+<p>Looking more into 5.3.2. I’m interested in establishing the
+<code>cluster</code> network (the best) profile and the 8ms network (the
+worse, <code>tc-4ms</code>) profile.</p>
+<h3 id="cluster-network-profile">Cluster Network Profile</h3>
+<p><img src="5_3_2-cluster-run-throughput_adjusted.svg" /></p>
+<table>
+<thead>
+<tr class="header">
+<th>Network Latency</th>
+<th>Min Ops/s</th>
+<th>Max Ops/s</th>
+<th>Mean Ops/s</th>
+<th>StdDev</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>5_3_2-cluster-run1</td>
+<td>2512.00</td>
+<td>3069.00</td>
+<td>2881.29</td>
+<td>90.13</td>
+</tr>
+<tr class="even">
+<td>5_3_2-cluster-run2</td>
+<td>2539.00</td>
+<td>3043.00</td>
+<td>2885.10</td>
+<td>80.90</td>
+</tr>
+<tr class="odd">
+<td>5_3_2-cluster-run3</td>
+<td>2586.00</td>
+<td>3116.00</td>
+<td>2895.56</td>
+<td>91.47</td>
+</tr>
+</tbody>
+</table>
+<p>That all looks good to me; things look more-or-less equivalent with
+the exception of the stddev of the second run.</p>
+<h3 id="ms-network-profile-tc-4ms">8ms Network Profile,
+<code>tc-4ms</code></h3>
+<p><img src="5_3_2-tc-4ms-run-throughput_adjusted.svg" /></p>
+<table>
+<thead>
+<tr class="header">
+<th>Network Latency</th>
+<th>Min Ops/s</th>
+<th>Max Ops/s</th>
+<th>Mean Ops/s</th>
+<th>StdDev</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>5_3_2-tc-4ms-run1</td>
+<td>0.00</td>
+<td>56.00</td>
+<td>4.11</td>
+<td>9.09</td>
+</tr>
+<tr class="even">
+<td>5_3_2-tc-4ms-run2</td>
+<td>39.00</td>
+<td>125.00</td>
+<td>92.95</td>
+<td>19.19</td>
+</tr>
+<tr class="odd">
+<td>5_3_2-tc-4ms-run3</td>
+<td>0.00</td>
+<td>127.00</td>
+<td>65.80</td>
+<td>29.96</td>
+</tr>
+<tr class="even">
+<td>5_3_2-tc-4ms-run4</td>
+<td>0.00</td>
+<td>56.00</td>
+<td>3.75</td>
+<td>9.49</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Reminder. I always verify the network post-application of
+<code>tc</code> and confirm the desired latency between members. I only
+profile post-results analysis.</p>
+</blockquote>
+<p><code>5_3_2-tc-4ms-run1</code> is the run results as reported earlier
+in this document. I ran this scenario another three times because of the
+differences per-run.</p>
 </body>
 </html>

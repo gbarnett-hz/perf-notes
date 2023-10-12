@@ -149,9 +149,48 @@ normalisation._
 
 # Summary
 
+> Please see the _Review_ section where I do a bit of confirmation w.r.t. a few scenarios for 5.3.2.
+
 - 5.3.2 w.r.t. 5.3.1. has the following (huge) mean op/s improvements: ~49x in a `cluster` network
   profile and ~101x in `tc-1ms` network profile.
 - 5.3.2 exhibits a massive dip in performance with 8ms member<->member network latency. A large
   percentage of op/s data points are 0 under this profile.
 - 5.3.0 and 5.3.1 show massive occassional peaking.
 - 4.2.8 shows a repeatable pattern of peaking.
+
+# Review
+
+## 5.3.2
+
+Looking more into 5.3.2. I'm interested in establishing the `cluster` network (the best) profile and
+the 8ms network (the worse, `tc-4ms`) profile.
+
+### Cluster Network Profile
+
+![](5_3_2-cluster-run-throughput_adjusted.svg)
+
+| Network Latency    | Min Ops/s | Max Ops/s | Mean Ops/s | StdDev |
+| ------------------ | --------- | --------- | ---------- | ------ |
+| 5_3_2-cluster-run1 | 2512.00   | 3069.00   | 2881.29    | 90.13  |
+| 5_3_2-cluster-run2 | 2539.00   | 3043.00   | 2885.10    | 80.90  |
+| 5_3_2-cluster-run3 | 2586.00   | 3116.00   | 2895.56    | 91.47  |
+
+That all looks good to me; things look more-or-less equivalent with the exception of the stddev of
+the second run.
+
+### 8ms Network Profile, `tc-4ms`
+
+![](5_3_2-tc-4ms-run-throughput_adjusted.svg)
+
+| Network Latency   | Min Ops/s | Max Ops/s | Mean Ops/s | StdDev |
+| ----------------- | --------- | --------- | ---------- | ------ |
+| 5_3_2-tc-4ms-run1 | 0.00      | 56.00     | 4.11       | 9.09   |
+| 5_3_2-tc-4ms-run2 | 39.00     | 125.00    | 92.95      | 19.19  |
+| 5_3_2-tc-4ms-run3 | 0.00      | 127.00    | 65.80      | 29.96  |
+| 5_3_2-tc-4ms-run4 | 0.00      | 56.00     | 3.75       | 9.49   |
+
+> Reminder. I always verify the network post-application of `tc` and confirm the desired latency
+> between members. I only profile post-results analysis.
+
+`5_3_2-tc-4ms-run1` is the run results as reported earlier in this document. I ran this scenario
+another three times because of the differences per-run.
